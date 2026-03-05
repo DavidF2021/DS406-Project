@@ -1,6 +1,7 @@
 ###Data Cleaner
 library(tidyverse)
 library(janitor)
+
 speed_dating <- read_csv("Speed_Dating.csv")
 
 speed_dating <- data %>%
@@ -8,6 +9,7 @@ speed_dating <- data %>%
 
 glimpse(speed_dating)
 summary(speed_dating)
+
 #-----------------------------------------------
 # Dates informations
 ## datset with columns related to every single date
@@ -57,11 +59,7 @@ count_na <- function(x){
       stringsAsFactors = FALSE
     )
   }
-  
   do.call(rbind, rows)
 }
 
-git add Data_cleaner.R
-git commit -m "updated data cleaning script"
-git push
 
