@@ -2,13 +2,25 @@
 library(tidyverse)
 library(janitor)
 
-speed_dating <- read_csv("Speed_Dating.csv")
-
+data <- read_csv("Speed_Dating.csv")
 speed_dating <- data %>%
   clean_names()
 
-glimpse(speed_dating)
-summary(speed_dating)
+#-----------------------------------------------
+# Data cleaning \anomalies correction
+## id
+speed_dating[8378,'id'] = 22 # NaN -> 22
+
+## pid
+x <-which(is.na(speed_dating$pid))
+dates[x,c('iid','id','gender','wave','partner','pid')]
+y<-which (dates$id == 7 & dates$wave == 5)
+dates[y,c('iid','id','gender','wave','partner','pid')]
+setdiff(min(dates$iid):max(dates$iid), dates$iid) #iid 118 did not participate
+# drop rows related to 118
+speed_dating <- speed_dating %>%
+  filter(!is.na(pid))
+
 
 #-----------------------------------------------
 # Dates informations
@@ -61,5 +73,9 @@ count_na <- function(x){
   }
   do.call(rbind, rows)
 }
+
+
+
+
 
 
