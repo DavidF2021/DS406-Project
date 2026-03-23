@@ -1,6 +1,8 @@
 ###Data Cleaner
 library(tidyverse)
 library(janitor)
+library(dplyr)
+library(ggplot2)
 
 speed_dating <- read_csv("Speed_Dating.csv")
 speed_dating <- speed_dating %>%
@@ -85,6 +87,26 @@ for (i in 1:nrow(dates)) {
     dates$pf_o_sha[i] <- signup$shar1_1[dates$pid[i]]
   } # NAs 129 -> 65
 }
+
+# changing met based on met_o
+table(dates$met_o)
+table(dates$met)
+table(scorecard$met)
+
+scorecard <- scorecard %>%
+  left_join(
+    dates %>% 
+    select(iid, pid, met_o),
+    by = c("pid" = "iid", "iid" = "pid")
+  ) %>%
+  mutate(met = met_o) %>% select(-met_o)
+
+table(dates$met_o)
+table(dates$met)
+table(scorecard$met)
+# wrong entries to NA
+scorecard$met[!(scorecard$met %in% c(1, 2))] <- NA
+table(scorecard$met)
 
 # attr_o to met_o / the data are missing
 dates <- dates %>% #chat GPT
