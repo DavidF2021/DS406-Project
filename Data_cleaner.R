@@ -134,6 +134,7 @@ for (i in 1:nrow(signup)) {
   }
 }
 
+#-------------------------------------------------
 ## to count NA in every column of a dataset
 count_na <- function(x){
   n <- ncol(x)
