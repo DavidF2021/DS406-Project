@@ -17,14 +17,14 @@ dates <- speed_dating %>%
 
 ## scorecard filled after each date + iid,id,partner
 scorecard <- speed_dating %>%
-  select(c(iid,id,pid,partner,dec:match_es))
+  select(c(iid,id,pid,gender,partner,dec:match_es))
 
 #-----------------------------------------------
 # datasets with information unique for every iid
 
 ## data filled to sign up + iid //Time1
 signup <- speed_dating %>%
-  select(c(iid, wave, age:amb5_1)) %>% 
+  select(c(iid, wave,gender, age:amb5_1)) %>% 
   distinct() #-- collapsed, 551 distinct iid
 
 ## data filled half way thru + iid
@@ -109,22 +109,22 @@ scorecard$met[!(scorecard$met %in% c(1, 2))] <- NA
 table(scorecard$met)
 
 # attr_o to met_o / the data are missing
-dates <- dates %>% #chat GPT
-  left_join(
-    scorecard %>%
-      select(iid, pid, attr, sinc, intel, fun, amb, shar, like),
-    by = c("pid" = "iid", "iid" = "pid")
-  ) %>%
-  mutate(
-    attr_o  = coalesce(attr_o,  attr),
-    sinc_o  = coalesce(sinc_o,  sinc),
-    intel_o = coalesce(intel_o, intel),
-    fun_o   = coalesce(fun_o,   fun),
-    amb_o   = coalesce(amb_o,   amb),
-    shar_o  = coalesce(shar_o,  shar),
-    like_o  = coalesce(like_o,  like)
-  ) %>%
-  select(-attr, -sinc, -intel, -fun, -amb, -shar, -like)
+#dates <- dates %>% #chat GPT
+#  left_join(
+#    scorecard %>%
+#      select(iid, pid, attr, sinc, intel, fun, amb, shar, like),
+#    by = c("pid" = "iid", "iid" = "pid")
+#  ) %>%
+#  mutate(
+#    attr_o  = coalesce(attr_o,  attr),
+#    sinc_o  = coalesce(sinc_o,  sinc),
+#    intel_o = coalesce(intel_o, intel),
+#    fun_o   = coalesce(fun_o,   fun),
+#    amb_o   = coalesce(amb_o,   amb),
+#    shar_o  = coalesce(shar_o,  shar),
+#    like_o  = coalesce(like_o,  like)
+#  ) %>%
+#  select(-attr, -sinc, -intel, -fun, -amb, -shar, -like)
 
 ### Scorecard
 # scaling 1-10 to 100pt for wave 6 to 9
