@@ -23,15 +23,24 @@ scorecard_a <- scorecard_a %>%
 
 #no actual improvement made
 
+
 #verify there aren't any non-valid entry
-table(scorecard_a$dec) 
-table(scorecard_a$shar) 
+#sometimes there are in-between values
+table(scorecard_a$dec) #ok
+table(scorecard_a$attr) #there's a 9.9 entry
+table(scorecard_a$sinc) 
+table(scorecard_a$intel) 
+table(scorecard_a$fun)
+table(scorecard_a$amb)
+table(scorecard_a$match_es) 
+ 
 
 fit1 <- glm(dec ~ attr + sinc + intel + fun + amb + shar, 
                data = scorecard, 
                family = binomial(link = "logit"))
 summary(fit1)
 #1338 obs eliminated for missing values
+#1334/8378 16% of data is missing 
 
 exp(coef(fit1))
 
@@ -67,4 +76,62 @@ ggplot(x, aes(met, dec)) +
   stat_smooth(method = "glm",
               method.args = list(family = "binomial"),
               se = FALSE)
+#model fitted taking into account gender
+fit_women <- glm(dec ~ attr + sinc + intel + fun + amb + shar, 
+                 data = subset(scorecard, gender == "Female"), family = "binomial")
+
+fit_men <- glm(dec ~ attr + sinc + intel + fun + amb + shar, 
+               data = subset(scorecard, gender == "Male"), family = "binomial")
+
+#what woman look in man
+fit_women <- glm(dec ~ attr1_1 + sinc1_1 + intel1_1 + fun1_1 + amb1_1 + shar1_1, 
+                 data = subset(signup, gender == "Female"), family = "binomial")
+
+
+pref_self <- c("attr1_1", "sinc1_1", "intel1_1", "fun1_1", "amb1_1", "shar1_1") 
+pref_opp <- c("attr2_1", "sinc2_1", "intel2_1", "fun2_1", "amb2_1", "shar2_1")
+
+
+attr_names <- c("Attractive", "Sincere", "Intelligent", "Fun", "Ambitious", "Shared Interests")
+idx_f<-which(signup$gender == 0) #rows with female participants
+idx_m<-which(signup$gender == 1) #rows with male participants
+#looking at difference in expectation bewteen genders
+
+f_reality <- colMeans(signup[idx_f, pref_self], na.rm = TRUE) 
+m_percept <- colMeans(signup[idx_m, pref_opp], na.rm = TRUE) 
+
+m_reality <- colMeans(signup[idx_m, pref_self], na.rm = TRUE)
+f_percept <- colMeans(signup[idx_f, pref_opp], na.rm = TRUE) 
+
+#Dataframe to help building a graphic
+plot_data <- data.frame(
+  Attribute = rep(attr_names, 4),
+  Value = c(f_reality, m_percept, m_reality, f_percept),
+  Group = rep(c("Reality (Women)", "Men's Perception", "Reality (Men)", "Women's Perception"), each = 6),
+  TargetGender = rep(c("What Women Want", "What Men Want"), each = 12)
+)
+
+
+#graphic
+ggplot(plot_data, aes(x = Attribute, y = Value, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~TargetGender) +
+  scale_fill_brewer(palette = "Set1") + 
+  theme_bw() + 
+  labs(title = "Gender Perception Bias Analysis",
+       subtitle = "Comparison between stated preferences and partner's expectations",
+       y = "Average Score (Total 100 points)", x = "") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom")
+
+#looking for signifcant differences with t-test
+for (i in 1:6) {
+  test <- t.test(signup[idx_f, pref_self[i]], signup[idx_m, pref_opp], na.rm = TRUE)
+  print(paste("The p-value for differences in the variable", attr_names[i], "is", round(test$p.value,4)))
+}
+
+for (i in 1:6) {
+  test <- t.test(signup[idx_m, pref_self[i]], signup[idx_f, pref_opp], na.rm = TRUE)
+  print(paste("The p-value for differences in the variable", attr_names[i], "is", round(test$p.value,4)))
+}
 

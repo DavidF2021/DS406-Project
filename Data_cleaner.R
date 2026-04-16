@@ -4,7 +4,7 @@ library(janitor)
 library(dplyr)
 library(ggplot2)
 
-speed_dating <- read_csv("Speed_Dating.csv")
+speed_dating <- read_csv(file.choose())
 speed_dating <- speed_dating %>%
   clean_names() %>%
   mutate(index = row_number(), .before = 1) # add index column

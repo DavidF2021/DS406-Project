@@ -19,6 +19,8 @@ signup <- signup %>%
                   '6'='Other'
     )
   )
+#number of male and female
+table(signup$gender)
 
 ggplot(signup, aes(y = age, x = gender))+
   geom_boxplot() +
@@ -31,6 +33,9 @@ ggplot(signup, aes(y = age, x = gender))+
     panel.border = element_rect(color = "black", fill = NA),
     plot.title = element_text(hjust = 0.5)
   )
+
+#people whose age is > 35
+signup[which(signup$age > 35), ]
 
 ggplot(signup, aes(y = age, x = gender, fill = race))+
   geom_boxplot() +
@@ -65,5 +70,7 @@ scorecard <- scorecard %>%
                  '1'='Yes')
   )
 
+#number of yes and no divided by gender
 table(scorecard$gender, scorecard$dec)
+
 
