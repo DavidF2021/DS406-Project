@@ -70,7 +70,9 @@ scorecard <- scorecard %>%
                  '1'='Yes')
   )
 
+
 #number of yes and no divided by gender
 table(scorecard$gender, scorecard$dec)
-
+ggplot(scorecard, aes(y = dec, x = ))+
+  geom_point()
 

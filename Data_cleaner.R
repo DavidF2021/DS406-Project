@@ -4,8 +4,7 @@ library(janitor)
 library(dplyr)
 library(ggplot2)
 
-speed_dating <- read_csv(file.choose())
-speed_dating <- speed_dating %>%
+speed_dating <- data %>%
   clean_names() %>%
   mutate(index = row_number(), .before = 1) # add index column
 
@@ -55,7 +54,7 @@ y<-which (dates$id == 7 & dates$wave == 5)
 dates[y,c('index','iid','id','gender','wave','partner','pid')]
 setdiff(min(dates$iid):max(dates$iid), dates$iid) #iid 118 did not participate
 # drop rows related to 118
-dates <- speed_dating %>%
+dates <- dates %>%
   filter(!is.na(pid))
 
 ### Dates
@@ -90,7 +89,6 @@ for (i in 1:nrow(dates)) {
 
 # changing met based on met_o
 table(dates$met_o)
-table(dates$met)
 table(scorecard$met)
 
 scorecard <- scorecard %>%
@@ -102,7 +100,6 @@ scorecard <- scorecard %>%
   mutate(met = met_o) %>% select(-met_o)
 
 table(dates$met_o)
-table(dates$met)
 table(scorecard$met)
 # wrong entries to NA
 scorecard$met[!(scorecard$met %in% c(1, 2))] <- NA
@@ -156,6 +153,24 @@ for (i in 1:nrow(signup)) {
   }
 }
 
+# -----------------------------------
+# Recoding of variables
+##Gender
+speed_dating <- speed_dating %>% 
+  mutate(
+    gender = factor(gender),
+    gender = recode(gender,
+                    '0' = 'Female',
+                    '1' = 'Male')
+  )
+##Dec
+speed_dating <- speed_dating %>%
+  mutate(
+    dec = factor(dec),
+    dec = recode(dec,
+                 '0'='No',
+                 '1'='Yes')
+  )
 #-------------------------------------------------
 ## to count NA in every column of a dataset
 count_na <- function(x){

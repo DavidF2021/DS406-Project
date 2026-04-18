@@ -135,3 +135,101 @@ for (i in 1:6) {
   print(paste("The p-value for differences in the variable", attr_names[i], "is", round(test$p.value,4)))
 }
 
+# Does age difference influence the match?
+agediff <- abs(speed_dating$age - speed_dating$age_o)
+x <- data.frame(
+  match = speed_dating$match,
+  agediff = agediff
+  )
+
+mod <- glm(match ~ agediff, data = x, family = binomial(link='logit'))
+summary(mod)
+exp(coef(mod))
+ggplot(x, aes(y = match, x = agediff)) +
+  geom_point(size = .1) +
+  geom_jitter(width = .1, height = .1)+
+  stat_smooth(method = "glm",
+              method.args = list(family = "binomial"),
+              se = FALSE)
+
+# How age difference influence the decision?
+x <- data.frame(
+  dec = speed_dating$dec,
+  agediff = speed_dating$age - speed_dating$age_o
+)
+
+mod <- glm(dec ~ agediff, data = x, family = binomial(link='logit'))
+summary(mod)
+exp(coef(mod))
+ggplot(x, aes(y = dec, x = agediff)) +
+  geom_point(size = .1) +
+  geom_jitter(width = .1, height = .1)+
+  stat_smooth(method = "glm",
+              method.args = list(family = "binomial"),
+              se = FALSE)
+
+# Are age outliers influence our models?
+which(speed_dating$age > 35)
+which(signup$age >35)
+x <- speed_dating[,c('gender','age','age_o','dec')]
+x <- x[x$age <= 35,]
+x$agediff <- x$age - x$age_o
+which(x$age >35)
+
+mod <- glm(dec ~ agediff+gender, data = x, family = binomial(link='logit'))
+summary(mod)
+exp(coef(mod))
+ggplot(x, aes(y = dec, x = agediff)) +
+  geom_point(size = .1) +
+  geom_jitter(width = .1, height = .1)+
+  stat_smooth(method = "glm",
+              method.args = list(family = "binomial"),
+              se = FALSE)
+
+mod <- glm(dec ~ agediff, data = x, family = binomial(link='logit'))
+summary(mod)
+exp(coef(mod))
+ggplot(x, aes(y = dec, x = agediff)) +
+  geom_point(size = .1) +
+  geom_jitter(width = .1, height = .1)+
+  stat_smooth(method = "glm",
+              method.args = list(family = "binomial"),
+              se = FALSE)
+breaks <- seq(15,60,by=2)
+hist(signup$age, breaks = breaks)
+x <- signup$age
+x<-x[x<40]
+breaks <- seq(15,40,by=2)
+hist(x, breaks = breaks)
+
+
+# Does opinions change before/after
+# (differences in signup,halfway,follow up1-2)
+colnames(signup)
+x <- cbind(signup[,c(3,40:45,58:62)],halfway[,-1])
+
+# dependence of Nan to gender
+count_na(x)
+rowSums(is.na(x)) # everybody who didnt answer, did not answer to all
+
+rowSums(is.na(signup[,c(40:45,58:62)]))
+
+
+colSums(is.na(x))
+
+check_dep <- function(x) {
+  x$M1_1 <- is.na(x[, 2])
+  tb <- table(x[, c(1, 3)])
+  print(tb)
+  tt <- chisq.test(tb)
+  print(tt)
+  return(tt$p.value)
+}
+
+pval <- numeric(ncol(x) - 1)
+
+for (i in 2:ncol(x)) {
+  pval[i - 1] <- check_dep(x[, c(1, i)])
+}
+
+which(pval < 0.05) # no significant pval no response is not infulenced by gender
