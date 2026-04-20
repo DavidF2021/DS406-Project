@@ -18,6 +18,9 @@ speed_dating <- data %>%
   clean_names() %>%
   mutate(index = row_number(), .before = 1)
 
+# Single missing id value
+speed_dating[8378, 'id'] <- 22
+
 # --- Split into thematic sub-datasets ---
 
 dates <- speed_dating %>% select(index:met_o)
@@ -49,8 +52,7 @@ followup2 <- speed_dating %>% select(iid, you_call:amb5_3) %>% distinct()
 
 # --- Fix known anomalies ---
 
-# Single missing id value
-speed_dating[8378, 'id'] <- 22
+
 
 # Drop rows where pid is NA (iid 118 did not participate)
 dates <- dates %>% filter(!is.na(pid))
@@ -172,64 +174,60 @@ plot(roc_obj, main = paste("ROC Curve (AUC =", round(auc(roc_obj), 3), ")"),
 abline(a = 0, b = 1, lty = 2, col = "red")
 
 
+
+
 # ============================================================
-# 4. DO PEOPLE PRIORITISE WHAT THEY SAY THEY DO?
+# 4B. DO PEOPLE ACCURATELY PERCEIVE HOW OTHERS SEE THEM?
 # ============================================================
 
-# Stated vs. actual attractiveness
-pref_vs_act <- scorecard %>%
+# Self-ratings from signup (how participants rate themselves)
+self_ratings <- signup %>%
+  select(iid, attr3_1, sinc3_1, intel3_1, fun3_1, amb3_1) %>%
+  rename(attr_self = attr3_1, sinc_self = sinc3_1, intel_self = intel3_1,
+         fun_self = fun3_1, amb_self = amb3_1)
+
+# Average ratings received from dates
+others_ratings <- speed_dating %>%
   group_by(iid) %>%
-  summarise(avg_attr_given = mean(attr, na.rm = TRUE)) %>%
-  left_join(signup %>% select(iid, attr1_1), by = "iid")
+  summarise(
+    attr_others  = mean(attr_o,  na.rm = TRUE),
+    sinc_others  = mean(sinc_o,  na.rm = TRUE),
+    intel_others = mean(intel_o, na.rm = TRUE),
+    fun_others   = mean(fun_o,   na.rm = TRUE),
+    amb_others   = mean(amb_o,   na.rm = TRUE)
+  )
 
-ggplot(pref_vs_act, aes(x = attr1_1, y = avg_attr_given)) +
-  geom_point(alpha = 0.4, color = "darkblue") +
-  labs(title = "Stated vs. Actual Attractiveness Prioritisation",
-       subtitle = "Weak relationship suggests behaviour ≠ stated preferences",
-       x = "Stated Importance of Attractiveness (0–100)",
-       y = "Average Attractiveness Rating Given") +
-  theme_minimal()
+self_vs_others <- self_ratings %>%
+  inner_join(others_ratings, by = "iid") %>%
+  drop_na() %>%
+  pivot_longer(-iid,
+               names_to  = c("Attribute", "Source"),
+               names_sep = "_",
+               values_to = "Rating") %>%
+  mutate(
+    Attribute = recode(Attribute,
+                       "attr" = "Attractive", "sinc" = "Sincere", "intel" = "Intelligent",
+                       "fun"  = "Fun",        "amb"  = "Ambitious"),
+    Source = recode(Source, "self" = "Self-Rating", "others" = "Rated by Others")
+  )
 
-# Gender perception bias: what each gender says they want vs. what the other expects
-attr_names <- c("Attractive", "Sincere", "Intelligent", "Fun", "Ambitious", "Shared Interests")
-pref_self  <- c("attr1_1", "sinc1_1", "intel1_1", "fun1_1", "amb1_1", "shar1_1")
-pref_opp   <- c("attr2_1", "sinc2_1", "intel2_1", "fun2_1", "amb2_1", "shar2_1")
-
-idx_f <- which(signup$gender == "Female")
-idx_m <- which(signup$gender == "Male")
-
-plot_data <- data.frame(
-  Attribute    = rep(attr_names, 4),
-  Value        = c(colMeans(signup[idx_f, pref_self], na.rm = TRUE),
-                   colMeans(signup[idx_m, pref_opp],  na.rm = TRUE),
-                   colMeans(signup[idx_m, pref_self], na.rm = TRUE),
-                   colMeans(signup[idx_f, pref_opp],  na.rm = TRUE)),
-  Group        = rep(c("Reality (Women)", "Men's Perception",
-                       "Reality (Men)", "Women's Perception"), each = 6),
-  TargetGender = rep(c("What Women Want", "What Men Want"), each = 12)
-)
-
-ggplot(plot_data, aes(x = Attribute, y = Value, fill = Group)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  facet_wrap(~TargetGender) +
-  scale_fill_brewer(palette = "Set1") +
-  labs(title = "Gender Perception Bias",
-       subtitle = "Stated preferences vs. partner's expectations",
-       y = "Average Score (out of 100)", x = "") +
-  theme_bw() +
+ggplot(self_vs_others, aes(x = Attribute, y = Rating, fill = Source)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Self-Perception vs. How Others Actually Rate You",
+       subtitle = "Do people know how they come across?",
+       x = "Attribute", y = "Rating (1–10)", fill = "") +
+  theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "bottom")
+        legend.position = "top")
 
-#looking for signifcant differences with t-test
-for (i in 1:6) {
-  test <- t.test(signup[idx_f, pref_self[i]], signup[idx_m, pref_opp], na.rm = TRUE)
-  print(paste("The p-value for differences in the variable", attr_names[i], "is", round(test$p.value,4)))
+# T-tests per attribute
+for (attr in unique(self_vs_others$Attribute)) {
+  vals <- self_vs_others %>% filter(Attribute == attr)
+  tt <- t.test(Rating ~ Source, data = vals)
+  cat("Self vs. others -", attr, ": p =", round(tt$p.value, 4), "\n")
 }
 
-for (i in 1:6) {
-  test <- t.test(signup[idx_m, pref_self[i]], signup[idx_f, pref_opp], na.rm = TRUE)
-  print(paste("The p-value for differences in the variable", attr_names[i], "is", round(test$p.value,4)))
-}
+
 
 # ============================================================
 # 5. DOES AGE DIFFERENCE AFFECT DECISIONS?
