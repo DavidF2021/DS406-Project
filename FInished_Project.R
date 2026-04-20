@@ -1,16 +1,16 @@
-# ============================================================
+#-------------------
 # Speed Dating Analysis
-# DS406/ST662 - Group 13/14
-# ============================================================
+# DS406 - Group 13
+#-------------------
 
 library(tidyverse)
 library(janitor)
 library(reshape2)
 library(pROC)
 
-# ============================================================
+#-------------------
 # 1. DATA LOADING & CLEANING
-# ============================================================
+
 
 data <- read.csv("Speed_Dating.csv")
 
@@ -86,18 +86,25 @@ for (i in 1:nrow(signup)) {
   }
 }
 
-
-# ============================================================
+#-------------------
 # 2. DESCRIPTIVE ANALYSIS
-# ============================================================
 
-# --- Age by gender ---
-ggplot(signup, aes(x = gender, y = age)) +
-  geom_boxplot() +
-  labs(title = "Age Distribution by Gender", x = "Gender", y = "Age") +
-  theme_classic() +
-  theme(panel.border = element_rect(color = "black", fill = NA),
-        plot.title = element_text(hjust = 0.5))
+
+ggplot(signup, aes(x = gender, y = age, fill = gender)) +
+  geom_violin(alpha = 0.25, trim = FALSE) +
+  #geom_boxplot(width = 0.15, alpha = 0.8, outlier.shape = 21, outlier.size = 2) +
+  geom_jitter(width = 0.02, alpha = 0.3, size = 1.2, color = "grey30") +
+  scale_fill_manual(values = c("Female" = "red", "Male" = "blue")) +
+  labs(title = "Age Distribution by Gender",
+       subtitle = "Violin + boxplot with individual participants overlaid",
+       x = "Gender", y = "Age") +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none",
+        plot.title    = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "grey50"),
+        panel.grid.major.x = element_blank())
+ # --- Decision rate by gender ---
+table(scorecard$gender, scorecard$dec)
 
 
 interests_corr <- round(cor(signup %>% select(sports:yoga), use = "complete.obs"), 2)
@@ -110,17 +117,15 @@ melt(interests_corr) %>%
   labs(title = "Correlation Between Participant Interests")
 
 
-
-# ============================================================
+#-------------------
 # 3. WHAT DRIVES THE DATING DECISION?
-# ============================================================
+
 
 # --- Main logistic regression model ---
 model_data <- scorecard %>%
-  select(dec, gender, attr, intel, fun, shar) %>%
+  select(dec, gender, attr, intel, fun, shar, amb, sinc) %>%
   drop_na()
-#************ADD ALL ATTRIBUTES
-main_model <- glm(dec ~ attr + intel + fun + shar,
+main_model <- glm(dec ~ attr + intel + fun + shar + amb +sinc,
                   data = model_data,
                   family = binomial)
 summary(main_model)
@@ -133,6 +138,7 @@ coef_df <- data.frame(
 
 ggplot(coef_df, aes(x = reorder(Variable, OddsRatio), y = OddsRatio)) +
   geom_bar(stat = "identity", fill = "steelblue") +
+  geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 0.8) +
   coord_flip() +
   labs(title = "Attribute Importance in Dating Decisions",
        x = "Attribute", y = "Odds Ratio") +
@@ -176,9 +182,9 @@ abline(a = 0, b = 1, lty = 2, col = "red")
 
 
 
-# ============================================================
-# 4B. DO PEOPLE ACCURATELY PERCEIVE HOW OTHERS SEE THEM?
-# ============================================================
+#-------------------
+# 4. DO PEOPLE ACCURATELY PERCEIVE HOW OTHERS SEE THEM?
+
 
 # Self-ratings from signup (how participants rate themselves)
 self_ratings <- signup %>%
@@ -228,10 +234,9 @@ for (attr in unique(self_vs_others$Attribute)) {
 }
 
 
-
-# ============================================================
+#-------------------
 # 5. DOES AGE DIFFERENCE AFFECT DECISIONS?
-# ============================================================
+
 
 age_data <- speed_dating %>%
   filter(age <= 35) %>%
@@ -256,9 +261,10 @@ ggplot(age_data, aes(x = agediff, y = dec, color = gender, fill = gender)) +
 
 # --- Decision rate by gender ---
 table(scorecard$gender, scorecard$dec)
-# ============================================================
+
+#-------------------
 # 6. DO HIGH RATINGS LEAD TO REAL DATES?  (Follow-up outcome)
-# ============================================================
+
 
 popularity_scores <- speed_dating %>%
   group_by(iid) %>%
@@ -288,6 +294,8 @@ for (attr in attributes) {
       theme_minimal()
   )
 }
+
+
 
 
 
