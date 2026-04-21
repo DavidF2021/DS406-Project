@@ -185,6 +185,46 @@ abline(a = 0, b = 1, lty = 2, col = "red")
 #-------------------
 # 4. DO PEOPLE ACCURATELY PERCEIVE HOW OTHERS SEE THEM?
 
+pref_self <- c("attr1_1", "sinc1_1", "intel1_1", "fun1_1", "amb1_1", "shar1_1") 
+pref_opp <- c("attr2_1", "sinc2_1", "intel2_1", "fun2_1", "amb2_1", "shar2_1")
+
+
+attr_names <- c("Attractive", "Sincere", "Intelligent", "Fun", "Ambitious", "Shared Interests")
+idx_f<-which(signup$gender == "Female") #rows with female participants
+idx_m<-which(signup$gender == "Male") #rows with male participants
+
+f_real <- signup[idx_f, pref_self] %>% mutate(Group = "Reality (Women)", Target = "What Women Want")
+m_perc <- signup[idx_m, pref_opp]  %>% mutate(Group = "Men's Perception", Target = "What Women Want")
+m_real <- signup[idx_m, pref_self] %>% mutate(Group = "Reality (Men)", Target = "What Men Want")
+f_perc <- signup[idx_f, pref_opp]  %>% mutate(Group = "Women's Perception", Target = "What Men Want")
+
+colnames(f_real)[1:6] <- colnames(m_perc)[1:6] <- 
+  colnames(m_real)[1:6] <- colnames(f_perc)[1:6] <- attr_names
+
+perc_vs_reality<- bind_rows(f_real, m_perc, m_real, f_perc) %>%
+  pivot_longer(cols = all_of(attr_names), 
+               names_to = "Attribute", 
+               values_to = "Value")
+
+
+stats_summary <-perc_vs_reality %>%
+  group_by(Target, Attribute) %>%
+  summarise(p_val = round(t.test(Value ~ Group)$p.value, 4), .groups = 'drop')
+
+print(stats_summary)
+
+ggplot(perc_vs_reality, aes(x = Attribute, y = Value, fill = Group)) +
+  geom_boxplot(outlier.size = 0.5, alpha = 0.7) +
+  scale_fill_brewer(palette = "Set1") +
+  facet_wrap(~Target) +
+  theme_bw() +
+  labs(title = "Gender Perception Bias Analysis",
+       subtitle = "Distribution of scores: Reality vs Perception",
+       y = "Score (0-100)") +
+  theme(axis.text.x = element_text( hjust = 1),
+        legend.position = "bottom")+
+  guides(fill = guide_legend(nrow = 2, byrow = T))
+
 
 # Self-ratings from signup (how participants rate themselves)
 self_ratings <- signup %>%
@@ -200,7 +240,8 @@ others_ratings <- speed_dating %>%
     sinc_others  = mean(sinc_o,  na.rm = TRUE),
     intel_others = mean(intel_o, na.rm = TRUE),
     fun_others   = mean(fun_o,   na.rm = TRUE),
-    amb_others   = mean(amb_o,   na.rm = TRUE)
+    amb_others   = mean(amb_o,   na.rm = TRUE),
+    shar_others = mean(shar_o, na.rm = TRUE)
   )
 
 self_vs_others <- self_ratings %>%
@@ -260,40 +301,46 @@ ggplot(age_data, aes(x = agediff, y = dec, color = gender, fill = gender)) +
   theme_minimal()
 
 # --- Decision rate by gender ---
-table(scorecard$gender, scorecard$dec)
+table(scorecard$gender, scorecard$dec)/nrow(scorecard)*100
 
 #-------------------
 # 6. DO HIGH RATINGS LEAD TO REAL DATES?  (Follow-up outcome)
 
 
-popularity_scores <- speed_dating %>%
-  group_by(iid) %>%
-  summarise(across(c(attr_o, sinc_o, intel_o, fun_o, amb_o, shar_o),
-                   ~mean(.x, na.rm = TRUE),
-                   .names = "{sub('_o', '', .col)}"))
 
-final_outcome <- followup2 %>%
+final_outcome<- followup2 %>%
   select(iid, date_3) %>%
-  inner_join(popularity_scores, by = "iid") %>%
-  filter(date_3 %in% c(0, 1)) %>%
-  mutate(RealDate = ifelse(date_3 == 1, "Yes", "No"))
-
-attributes <- c("attr", "sinc", "intel", "fun", "amb", "shar")
-
-for (attr in attributes) {
-  t_test <- t.test(final_outcome[[attr]] ~ final_outcome$RealDate)
-  cat("P-value for", attr, ":", round(t_test$p.value, 4), "\n")
+  inner_join(others_ratings, by = "iid") %>%
+  inner_join(speed_dating %>% group_by(iid) %>% summarise(number_of_match = sum(match)), by = "iid") %>%
+  filter(number_of_match >= 1) %>% 
   
-  print(
-    ggplot(final_outcome, aes(x = RealDate, y = .data[[attr]], fill = RealDate)) +
-      geom_boxplot(alpha = 0.6) +
-      labs(title = paste("Does high", attr, "rating lead to a real date?"),
-           subtitle = paste("T-test p-value:", round(t_test$p.value, 3)),
-           x = "Actual Date (3–4 weeks later)",
-           y = paste("Average", attr, "Rating Received")) +
-      theme_minimal()
-  )
-}
+  filter(date_3 %in% c(0, 1)) %>%
+  mutate(RealDate = ifelse(date_3 == 1, "Yes", "No")) %>%
+  pivot_longer(cols = c(attr_others, sinc_others, intel_others, fun_others, amb_others, shar_others),
+               names_to = "Attribute",
+               values_to = "Rating") %>%
+  mutate(Attribute = recode(Attribute, 
+                            "attr_others" = "Attractive", "sinc_others" = "Sincere", 
+                            "intel_others" = "Intelligent", "fun_others" = "Fun", 
+                            "amb_others" = "Ambitious", "shar_others" = "Shared Interests"))
+
+
+final_outcome %>%
+  group_by(Attribute) %>%
+  summarise(p_value = round(t.test(Rating ~ RealDate)$p.value, 4))
+
+ggplot(final_outcome, aes(x = RealDate, y = Rating, fill = RealDate)) +
+  geom_boxplot(alpha = 0.6) +
+  facet_wrap(~ Attribute) + 
+  labs(title = "Does popularity in specific traits lead to a real date?",
+       subtitle = "Comparison of ratings between those who had a date and those who didn't",
+       x = "Had a Real Date?", 
+       y = "Average Rating Received",
+       fill = "Outcome") +
+  theme_minimal()
+
+final_outcome |> distinct(iid)  |> 
+  summarise("Percentage of peope who had a match"=n()/nrow(signup))
 
 
 
