@@ -126,13 +126,13 @@ ggplot(plot_data, aes(x = Attribute, y = Value, fill = Group)) +
 
 #looking for signifcant differences with t-test
 for (i in 1:6) {
-  test <- t.test(signup[idx_f, pref_self[i]], signup[idx_m, pref_opp], na.rm = TRUE)
-  print(paste("The p-value for differences in the variable", attr_names[i], "is", round(test$p.value,4)))
+  t_test <- t.test(signup[idx_f, pref_self[i]], signup[idx_m, pref_opp], na.rm = TRUE)
+  print(paste("The p-value for differences in the variable", attr_names[i], "is", round(t_test$p.value,4)))
 }
 
 for (i in 1:6) {
-  test <- t.test(signup[idx_m, pref_self[i]], signup[idx_f, pref_opp], na.rm = TRUE)
-  print(paste("The p-value for differences in the variable", attr_names[i], "is", round(test$p.value,4)))
+  t_test <- t.test(signup[idx_m, pref_self[i]], signup[idx_f, pref_opp], na.rm = TRUE)
+  print(paste("The p-value for differences in the variable", attr_names[i], "is", round(t_test$p.value,4)))
 }
 
 # Does age difference influence the match?

@@ -183,7 +183,7 @@ abline(a = 0, b = 1, lty = 2, col = "red")
 
 
 #-------------------
-# 4. DO PEOPLE ACCURATELY PERCEIVE HOW OTHERS SEE THEM?
+# 4.DIFFERENT EXPECTATION BEWTEEN GENDER
 
 pref_self <- c("attr1_1", "sinc1_1", "intel1_1", "fun1_1", "amb1_1", "shar1_1") 
 pref_opp <- c("attr2_1", "sinc2_1", "intel2_1", "fun2_1", "amb2_1", "shar2_1")
@@ -206,7 +206,6 @@ perc_vs_reality<- bind_rows(f_real, m_perc, m_real, f_perc) %>%
                names_to = "Attribute", 
                values_to = "Value")
 
-
 stats_summary <-perc_vs_reality %>%
   group_by(Target, Attribute) %>%
   summarise(p_val = round(t.test(Value ~ Group)$p.value, 4), .groups = 'drop')
@@ -221,10 +220,10 @@ ggplot(perc_vs_reality, aes(x = Attribute, y = Value, fill = Group)) +
   labs(title = "Gender Perception Bias Analysis",
        subtitle = "Distribution of scores: Reality vs Perception",
        y = "Score (0-100)") +
-  theme(axis.text.x = element_text( hjust = 1),
-        legend.position = "bottom")+
-  guides(fill = guide_legend(nrow = 2, byrow = T))
 
+  guides(fill = guide_legend(nrow = 4, byrow = T))
+
+#5. DO PEOPLE ACCURATELY PERCEIVE HOW OTHERS SEE THEM?
 
 # Self-ratings from signup (how participants rate themselves)
 self_ratings <- signup %>%
@@ -251,6 +250,7 @@ self_vs_others <- self_ratings %>%
                names_to  = c("Attribute", "Source"),
                names_sep = "_",
                values_to = "Rating") %>%
+  filter(Attribute != "shar") %>%
   mutate(
     Attribute = recode(Attribute,
                        "attr" = "Attractive", "sinc" = "Sincere", "intel" = "Intelligent",
@@ -276,7 +276,7 @@ for (attr in unique(self_vs_others$Attribute)) {
 
 
 #-------------------
-# 5. DOES AGE DIFFERENCE AFFECT DECISIONS?
+# 6. DOES AGE DIFFERENCE AFFECT DECISIONS?
 
 
 age_data <- speed_dating %>%
@@ -304,7 +304,7 @@ ggplot(age_data, aes(x = agediff, y = dec, color = gender, fill = gender)) +
 table(scorecard$gender, scorecard$dec)/nrow(scorecard)*100
 
 #-------------------
-# 6. DO HIGH RATINGS LEAD TO REAL DATES?  (Follow-up outcome)
+# 7. DO HIGH RATINGS LEAD TO REAL DATES?  (Follow-up outcome)
 
 
 
@@ -332,7 +332,7 @@ final_outcome %>%
 ggplot(final_outcome, aes(x = RealDate, y = Rating, fill = RealDate)) +
   geom_boxplot(alpha = 0.6) +
   facet_wrap(~ Attribute) + 
-  labs(title = "Does popularity in specific traits lead to a real date?",
+  labs(title = "Does an high rate in specific traits lead to a real date?",
        subtitle = "Comparison of ratings between those who had a date and those who didn't",
        x = "Had a Real Date?", 
        y = "Average Rating Received",
